@@ -199,7 +199,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (pathname === "/" || pathname === "/index.html") {
-    serveStatic(res, path.join(__dirname, "public", "index.html"));
+    serveStatic(res, path.join(__dirname, "index.html"));
     return;
   }
 
