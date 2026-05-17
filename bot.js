@@ -4,8 +4,8 @@ const fs = require("fs");
 const path = require("path");
 const url = require("url");
 
-const BOT_TOKEN = process.env.BOT_TOKEN || "8989657800:AAH5rkzWG-PDMHvO0FSyX7YKnVuya9pR7GQ";
-const FOOTBALL_API_KEY = process.env.FOOTBALL_API_KEY || "4791df4186194d6d9d1ec1f0d670d145";
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const FOOTBALL_API_KEY = process.env.FOOTBALL_API_KEY;
 const WEBAPP_URL = process.env.WEBAPP_URL || "https://beataibot-production.up.railway.app";
 const PORT = process.env.PORT || 3000;
 
