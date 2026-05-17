@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BeatAI — Football Intelligence</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#0a0a0f;color:#e8e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;overflow-x:hidden}
+:root{--green:#00e676;--blue:#2979ff;--card:#13131a;--card2:#1a1a24;--border:#ffffff12;--muted:#7b7b8f;--red:#ff4757}
+
+.app{max-width:480px;margin:0 auto;padding-bottom:72px}
+
+/* HEADER */
+.header{padding:12px 16px 10px;position:sticky;top:0;z-index:100;background:#0a0a0f;border-bottom:1px solid var(--border)}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.logo{font-size:18px;font-weight:800;letter-spacing:.5px}
+.logo span{color:var(--green)}
+.hbadge{background:#00e67618;color:var(--green);font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;border:1px solid #00e67630;display:flex;align-items:center;gap:4px}
+.hbadge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* DATE SCROLL */
+.date-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.date-scroll::-webkit-scrollbar{display:none}
+.dtab{flex-shrink:0;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--muted);transition:.2s;white-space:nowrap;user-select:none}
+.dtab.active{background:var(--green);color:#000;border-color:var(--green)}
+
+/* FILTER TABS */
+.ftabs{display:flex;gap:0;padding:0 16px;margin:10px 0 0;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border)}
+.ftabs::-webkit-scrollbar{display:none}
+.ftab{flex-shrink:0;padding:8px 14px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:.15s;white-space:nowrap}
+.ftab.active{color:var(--green);border-bottom-color:var(--green)}
+
+/* LEAGUE GROUP */
+.section{padding:12px 16px 0}
+.league-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.league-name{font-size:12px;font-weight:700;color:#ccc;flex:1;letter-spacing:.3px}
+.league-count{font-size:11px;color:var(--muted)}
+
+/* MATCH CARD */
+.mcard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:.15s;position:relative;overflow:hidden}
+.mcard:active{transform:scale(.98);background:#16161f}
+.mcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+.match-time-label{font-size:11px;color:var(--muted)}
+.match-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+.st-live{background:#ff192820;color:var(--red);border:1px solid #ff475730}
+.st-upcoming{background:#2979ff18;color:#5599ff;border:1px solid #2979ff30}
+.st-finished{background:#ffffff10;color:var(--muted);border:1px solid var(--border)}
+.teams-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.team{flex:1}
+.team-name{font-size:14px;font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-form{display:flex;gap:3px}
+.form-dot{width:17px;height:17px;border-radius:5px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.fW{background:#00e67622;color:var(--green)}
+.fD{background:#ffc10720;color:#ffc107}
+.fL{background:#ff475720;color:var(--red)}
+.score-block{text-align:center;min-width:56px}
+.score{font-size:21px;font-weight:800;letter-spacing:2px;color:#fff}
+.score-mins{font-size:10px;color:var(--red);font-weight:700;margin-top:1px}
+.vs-time{font-size:13px;color:var(--muted);font-weight:600}
+.team.right{text-align:right}
+.team.right .team-form{justify-content:flex-end}
+.odds-row{display:flex;gap:5px;margin-bottom:8px}
+.odd-btn{flex:1;background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:6px 4px;text-align:center;transition:.15s}
+.odd-btn.value{border-color:#00e67645;background:#00e67608}
+.odd-label{color:var(--muted);font-size:10px;margin-bottom:2px}
+.odd-num{font-size:14px;font-weight:700;color:#fff}
+.odd-btn.value .odd-num{color:var(--green)}
+.ai-row{display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border)}
+.ai-pick-info{display:flex;align-items:center;gap:5px;font-size:11px;min-width:0;flex:1}
+.ai-pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite;flex-shrink:0}
+.ai-pick-text{color:var(--green);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conf-bar{width:44px;height:4px;background:#ffffff15;border-radius:2px;overflow:hidden;flex-shrink:0}
+.conf-fill{height:100%;border-radius:2px;background:var(--green)}
+.conf-pct{font-size:10px;color:var(--muted);flex-shrink:0}
+.ev-badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;flex-shrink:0}
+.ev-pos{background:#00e67615;color:var(--green)}
+.ev-neu{background:#ffffff10;color:var(--muted)}
+.live-bar{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--red),transparent);animation:livebar 2s linear infinite}
+@keyframes livebar{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+/* LOADING */
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--muted)}
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:10px;opacity:.4}
+
+/* DETAIL OVERLAY */
+.overlay{position:fixed;inset:0;background:#000000cc;z-index:300;display:none;align-items:flex-end;backdrop-filter:blur(4px)}
+.overlay.open{display:flex}
+.sheet{background:#12121a;border-radius:18px 18px 0 0;width:100%;max-width:480px;margin:0 auto;max-height:88vh;overflow-y:auto;padding:0 16px 32px}
+.sheet-handle{width:36px;height:4px;background:#ffffff25;border-radius:2px;margin:12px auto 16px}
+.sheet-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.close-btn{background:var(--card2);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.detail-title{font-size:18px;font-weight:800;line-height:1.2}
+.detail-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.stat-card{background:var(--card);border-radius:11px;padding:10px 12px;border:1px solid var(--border)}
+.stat-label{font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.stat-val{font-size:18px;font-weight:800}
+.g{color:var(--green)}
+.b{color:#5599ff}
+.r{color:var(--red)}
+.analysis-block{background:var(--card);border-radius:11px;padding:12px 14px;margin-bottom:10px;border:1px solid var(--border)}
+.analysis-title{font-size:12px;font-weight:700;color:#ccc;margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
+.analysis-text{font-size:13px;color:#9090a8;line-height:1.65}
+.form-row{display:flex;justify-content:space-between;align-items:center}
+.form-side{display:flex;flex-direction:column;gap:4px}
+.form-side.right{align-items:flex-end}
+.form-team-name{font-size:11px;color:var(--muted);margin-bottom:2px}
+.form-dots{display:flex;gap:3px}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#0d0d14;border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{flex:1;padding:10px 0 8px;text-align:center;cursor:pointer;transition:.15s;color:var(--muted);font-size:10px;font-weight:600;user-select:none}
+.nav-icon{font-size:20px;margin-bottom:3px}
+.nav-item.active{color:var(--green)}
+
+/* STATS PAGE */
+.stats-page{padding:14px 16px}
+.bankroll-card{background:linear-gradient(135deg,#0d1f14,#0a1a1f);border:1px solid #00e67628;border-radius:16px;padding:20px;margin-bottom:14px;text-align:center}
+.bankroll-label{font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.bankroll-amount{font-size:32px;font-weight:800;color:var(--green);margin-bottom:4px}
+.bankroll-sub{font-size:12px;color:#00e67680}
+.stat-grid-4{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.mini-stat{background:var(--card);border-radius:11px;padding:12px;border:1px solid var(--border)}
+.ms-label{font-size:10px;color:var(--muted);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.ms-val{font-size:20px;font-weight:800}
+
+/* ALERTS */
+.alert-card{background:var(--card);border:1px solid #00e67620;border-radius:11px;padding:12px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
+.alert-emoji{font-size:22px;flex-shrink:0;margin-top:1px}
+.alert-body{flex:1;min-width:0}
+.alert-text{font-size:12px;color:#b0b0c8;line-height:1.55}
+.alert-time{font-size:10px;color:var(--muted);margin-top:4px}
+
+/* SECTION TITLE */
+.stitle{font-size:13px;font-weight:800;color:#ddd;margin-bottom:10px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.5px}
+
+/* TOP PICKS SCROLL */
+.picks-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 16px 4px;scrollbar-width:none;margin-bottom:4px}
+.picks-scroll::-webkit-scrollbar{display:none}
+.pick-card{flex-shrink:0;width:155px;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:12px;cursor:pointer;transition:.15s}
+.pick-card:active{border-color:#00e67650;transform:scale(.97)}
+.pick-league{font-size:10px;color:var(--muted);margin-bottom:5px;font-weight:600}
+.pick-teams{font-size:12px;font-weight:700;margin-bottom:6px;line-height:1.3}
+.pick-type{font-size:11px;color:var(--green);font-weight:800;margin-bottom:5px}
+.pick-meta{display:flex;justify-content:space-between;align-items:center}
+.pick-odd{font-size:17px;font-weight:800}
+.pick-conf{font-size:10px;color:var(--muted)}
+
+.type-row{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:10px;padding:10px 14px;margin-bottom:8px;border:1px solid var(--border)}
+.type-name{font-size:13px;font-weight:700}
+.type-stats{display:flex;gap:12px}
+.type-wr{font-size:13px;color:var(--green);font-weight:700}
+.type-roi{font-size:13px;color:#5599ff;font-weight:700}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">BEAT<span>AI</span></div>
+    <div class="hbadge">AI ONLINE</div>
+  </div>
+  <div class="date-scroll" id="dateScroll"></div>
+</div>
+
+<div class="ftabs" id="filterTabs">
+  <div class="ftab active" data-f="all">Все</div>
+  <div class="ftab" data-f="live">🔴 Live</div>
+  <div class="ftab" data-f="value">Value Bets</div>
+  <div class="ftab" data-f="top">Top Picks</div>
+  <div class="ftab" data-f="high">High Conf</div>
+</div>
+
+<div id="mainContent"></div>
+
+</div>
+
+<!-- DETAIL SHEET -->
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div>
+        <div class="detail-title" id="detailTitle"></div>
+        <div class="detail-sub" id="detailSub"></div>
+      </div>
+      <button class="close-btn" id="closeBtn">✕</button>
+    </div>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active" data-p="matches"><div class="nav-icon">📅</div>Матчи</div>
+  <div class="nav-item" data-p="live"><div class="nav-icon">🔴</div>Live</div>
+  <div class="nav-item" data-p="picks"><div class="nav-icon">🤖</div>AI Picks</div>
+  <div class="nav-item" data-p="stats"><div class="nav-icon">📊</div>Статы</div>
+  <div class="nav-item" data-p="alerts"><div class="nav-icon">🔔</div>Алерты</div>
+</div>
+
+<script>
+// Telegram WebApp init
+const tgApp = window.Telegram?.WebApp;
+if (tgApp) { tgApp.ready(); tgApp.expand(); }
+
+// ── State ──────────────────────────────────────────────────────────────────
+const today = new Date();
+let selectedDateIdx = 3; // today in our 8-day window
+let selectedFilter  = "all";
+let selectedPage    = "matches";
+let cachedMatches   = {}; // key: dateStr → matches[]
+
+// ── Build date tabs ────────────────────────────────────────────────────────
+const dateDefs = [];
+for (let i = -3; i <= 4; i++) {
+  const d = new Date(today);
+  d.setDate(d.getDate() + i);
+  const iso = d.toISOString().slice(0, 10);
+  const dow = ["Вс","Пн","Вт","Ср","Чт","Пт","Сб"][d.getDay()];
+  const dd  = d.getDate().toString().padStart(2,"0");
+  const mm  = (d.getMonth()+1).toString().padStart(2,"0");
+  let label = i === -1 ? "Вчера" : i === 0 ? "Сегодня" : i === 1 ? "Завтра" : `${dow} ${dd}.${mm}`;
+  dateDefs.push({ label, iso, offset: i });
+}
+
+const dateScroll = document.getElementById("dateScroll");
+dateDefs.forEach((d, i) => {
+  const t = document.createElement("div");
+  t.className = "dtab" + (i === 3 ? " active" : "");
+  t.textContent = d.label;
+  t.onclick = () => {
+    document.querySelectorAll(".dtab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    selectedDateIdx = i;
+    renderPage();
+  };
+  dateScroll.appendChild(t);
+});
+
+// ── Fetch matches from our backend ────────────────────────────────────────
+async function fetchMatches(dateStr) {
+  if (cachedMatches[dateStr]) return cachedMatches[dateStr];
+  try {
+    const r = await fetch(`/api/matches?dateFrom=${dateStr}&dateTo=${dateStr}`);
+    const data = await r.json();
+    cachedMatches[dateStr] = data.matches || [];
+    return cachedMatches[dateStr];
+  } catch(e) {
+    return [];
+  }
+}
+
+// ── League flag emoji ──────────────────────────────────────────────────────
+const leagueFlags = {
+  PL:"🏴󠁧󠁢󠁥󠁮󠁧󠁿", PD:"🇪🇸", BL1:"🇩🇪", SA:"🇮🇹", FL1:"🇫🇷", CL:"🌍",
+};
+
+function leagueEmoji(code) { return leagueFlags[code] || "⚽"; }
+
+// ── Match card HTML ────────────────────────────────────────────────────────
+function matchCardHTML(m) {
+  const isLive     = m.status === "live";
+  const isFinished = m.status === "finished";
+  const statusHTML = isLive
+    ? `<span class="match-status st-live">● LIVE</span>`
+    : isFinished
+    ? `<span class="match-status st-finished">Завершён</span>`
+    : `<span class="match-status st-upcoming">Скоро</span>`;
+
+  const scoreHTML = (isLive || isFinished) && m.score
+    ? `<div class="score-block"><div class="score">${m.score}</div>${isLive ? `<div class="score-mins">●</div>` : ""}</div>`
+    : `<div class="score-block"><div class="vs-time">${m.time}</div></div>`;
+
+  const ai = m.ai;
+  const h1 = ai.pick.toLowerCase().includes("home") || ai.pick.toLowerCase().includes("п1");
+  const x  = ai.pick.toLowerCase().includes("draw") || ai.pick.toLowerCase().includes("x");
+  const a2 = ai.pick.toLowerCase().includes("away") || ai.pick.toLowerCase().includes("п2");
+  const evClass = ai.ev.startsWith("+") ? "ev-pos" : "ev-neu";
+
+  return `<div class="mcard" onclick="showDetail('${m.id}')">
+    ${isLive ? '<div class="live-bar"></div>' : ""}
+    <div class="mcard-top">
+      <span class="match-time-label">${leagueEmoji(m.leagueCode)} ${m.league}</span>
+      ${statusHTML}
+    </div>
+    <div class="teams-row">
+      <div class="team">
+        <div class="team-name">${m.home}</div>
+      </div>
+      ${scoreHTML}
+      <div class="team right">
+        <div class="team-name">${m.away}</div>
+      </div>
+    </div>
+    <div class="odds-row">
+      <div class="odd-btn${h1?" value":""}"><div class="odd-label">П1</div><div class="odd-num">${ai.odds.h}</div></div>
+      <div class="odd-btn${x?" value":""}"><div class="odd-label">X</div><div class="odd-num">${ai.odds.d}</div></div>
+      <div class="odd-btn${a2?" value":""}"><div class="odd-label">П2</div><div class="odd-num">${ai.odds.a}</div></div>
+    </div>
+    <div class="ai-row">
+      <div class="ai-pick-info">
+        <div class="ai-pulse"></div>
+        <span class="ai-pick-text">${ai.pick}</span>
+        <div class="conf-bar"><div class="conf-fill" style="width:${ai.conf}%"></div></div>
+        <span class="conf-pct">${ai.conf}%</span>
+      </div>
+      <span class="ev-badge ${evClass}">EV ${ai.ev}</span>
+    </div>
+  </div>`;
+}
+
+// ── Group by league ────────────────────────────────────────────────────────
+function groupByLeague(matches) {
+  const groups = {};
+  matches.forEach(m => {
+    if (!groups[m.league]) groups[m.league] = { code: m.leagueCode, matches: [] };
+    groups[m.league].matches.push(m);
+  });
+  return groups;
+}
+
+// ── Render matches tab ─────────────────────────────────────────────────────
+async function renderMatchesTab() {
+  const content = document.getElementById("mainContent");
+  content.innerHTML = `<div class="loading"><div class="spinner"></div><div class="loading-text">Загружаем матчи...</div></div>`;
+
+  const dateStr = dateDefs[selectedDateIdx].iso;
+  let matches   = await fetchMatches(dateStr);
+
+  // Apply filter
+  if (selectedFilter === "live")  matches = matches.filter(m => m.status === "live");
+  if (selectedFilter === "value") matches = matches.filter(m => m.ai.type === "value");
+  if (selectedFilter === "top")   matches = matches.filter(m => m.ai.conf >= 75);
+  if (selectedFilter === "high")  matches = matches.filter(m => m.ai.conf >= 80);
+
+  if (matches.length === 0) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div>Нет матчей</div></div>`;
+    return;
+  }
+
+  // Top AI Picks strip (only on "today", no filter)
+  let html = "";
+  if (selectedFilter === "all" && dateDefs[selectedDateIdx].offset === 0) {
+    const topPicks = matches.filter(m => m.ai.conf >= 75).slice(0, 8);
+    if (topPicks.length) {
+      html += `<div class="section"><div class="stitle">🤖 Top AI Picks</div></div>
+      <div class="picks-scroll">
+        ${topPicks.map(m => `<div class="pick-card" onclick="showDetail('${m.id}')">
+          <div class="pick-league">${leagueEmoji(m.leagueCode)} ${m.league}</div>
+          <div class="pick-teams">${m.home} – ${m.away}</div>
+          <div class="pick-type">${m.ai.pick}</div>
+          <div class="pick-meta"><span class="pick-odd">${m.ai.odds.h}</span><span class="pick-conf">${m.ai.conf}%</span></div>
+        </div>`).join("")}
+      </div>`;
+    }
+  }
+
+  const groups = groupByLeague(matches);
+  Object.entries(groups).forEach(([league, data]) => {
+    html += `<div class="section">
+      <div class="league-header">
+        <span style="font-size:16px">${leagueEmoji(data.code)}</span>
+        <span class="league-name">${league}</span>
+        <span class="league-count">${data.matches.length}</span>
+      </div>
+      ${data.matches.map(matchCardHTML).join("")}
+    </div>`;
+  });
+
+  content.innerHTML = html;
+}
+
+// ── Render live tab ────────────────────────────────────────────────────────
+async function renderLiveTab() {
+  const content = document.getElementById("mainContent");
+  content.innerHTML = `<div class="loading"><div class="spinner"></div><div class="loading-text">Ищем live матчи...</div></div>`;
+
+  // Check today + yesterday for live
+  const dates = [dateDefs[3].iso, dateDefs[2].iso];
+  let live = [];
+  for (const d of dates) {
+    const ms = await fetchMatches(d);
+    live.push(...ms.filter(m => m.status === "live"));
+  }
+
+  if (!live.length) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">🔴</div><div>Нет live матчей</div></div>`;
+    return;
+  }
+
+  content.innerHTML = `<div class="section"><div class="stitle">🔴 Live матчи</div>${live.map(matchCardHTML).join("")}</div>`;
+}
+
+// ── Render picks tab ───────────────────────────────────────────────────────
+async function renderPicksTab() {
+  const content = document.getElementById("mainContent");
+  content.innerHTML = `<div class="loading"><div class="spinner"></div><div class="loading-text">Формируем AI Picks...</div></div>`;
+
+  // Gather picks from nearby dates
+  const nearDates = dateDefs.slice(2, 6).map(d => d.iso);
+  let all = [];
+  for (const d of nearDates) {
+    const ms = await fetchMatches(d);
+    all.push(...ms);
+  }
+
+  const picks = all.filter(m => m.ai.type === "value").sort((a, b) => b.ai.conf - a.ai.conf);
+
+  if (!picks.length) {
+    content.innerHTML = `<div class="empty"><div class="empty-icon">🤖</div><div>Нет picks на эти дни</div></div>`;
+    return;
+  }
+
+  content.innerHTML = `<div class="section"><div class="stitle">🤖 Value & AI Picks</div>${picks.map(matchCardHTML).join("")}</div>`;
+}
+
+// ── Render stats tab ───────────────────────────────────────────────────────
+function renderStatsTab() {
+  document.getElementById("mainContent").innerHTML = `
+  <div class="stats-page">
+    <div class="bankroll-card">
+      <div class="bankroll-label">Bankroll</div>
+      <div class="bankroll-amount">$2,847</div>
+      <div class="bankroll-sub">↑ +$347 (+13.9%) за месяц</div>
+    </div>
+    <div class="stat-grid-4">
+      <div class="mini-stat"><div class="ms-label">Win Rate</div><div class="ms-val g">67%</div></div>
+      <div class="mini-stat"><div class="ms-label">ROI</div><div class="ms-val g">+18.4%</div></div>
+      <div class="mini-stat"><div class="ms-label">Ставок</div><div class="ms-val">143</div></div>
+      <div class="mini-stat"><div class="ms-label">Серия W</div><div class="ms-val g">5 🔥</div></div>
+    </div>
+    <div class="stitle">📊 По типам</div>
+    ${[["Over/Under","72%","+22%"],["BTTS","68%","+15%"],["Home Win","65%","+18%"],["Asian Handicap","70%","+24%"],["Draw No Bet","63%","+11%"]].map(([t,wr,roi])=>`
+    <div class="type-row">
+      <div class="type-name">${t}</div>
+      <div class="type-stats"><span class="type-wr">${wr}</span><span class="type-roi">${roi}</span></div>
+    </div>`).join("")}
+  </div>`;
+}
+
+// ── Render alerts tab ──────────────────────────────────────────────────────
+function renderAlertsTab() {
+  const alerts = [
+    {e:"⚡",text:"Value Bet: Арсенал vs Ньюкасл | Home Win 1.75 | EV +6.8% | Conf 75%",t:"5 мин назад"},
+    {e:"📈",text:"Линия PSG vs Bayern: BTTS упал 1.95→1.75. Sharp money вошёл на Over.",t:"12 мин назад"},
+    {e:"🚨",text:"Травма: Беллингем под вопросом. Коэф Реала скорректировался с 1.30 до 1.42.",t:"28 мин назад"},
+    {e:"🔥",text:"Live Alert: МЮ vs Тоттенхэм. xG 2.1 при счёте 1-0. Победа хозяев EV +12%.",t:"41 мин назад"},
+    {e:"🤖",text:"AI Update: Bayern vs Leipzig Over 2.5 обновлён до 76% conf после анализа составов.",t:"1 ч назад"},
+    {e:"💰",text:"Market Mover: Ман Сити -1.5 AH резко вырос в объёме. Умные деньги на фаворита.",t:"2 ч назад"},
+  ];
+  document.getElementById("mainContent").innerHTML = `<div class="section">
+    <div class="stitle">🔔 AI Алерты</div>
+    ${alerts.map(a=>`<div class="alert-card"><div class="alert-emoji">${a.e}</div>
+      <div class="alert-body"><div class="alert-text">${a.text}</div><div class="alert-time">${a.t}</div></div>
+    </div>`).join("")}
+  </div>`;
+}
+
+// ── Main render dispatcher ─────────────────────────────────────────────────
+async function renderPage() {
+  const dateTabs   = document.getElementById("dateScroll");
+  const filterTabs = document.getElementById("filterTabs");
+
+  const showHeader = selectedPage === "matches";
+  dateTabs.style.display  = showHeader ? "flex" : "none";
+  filterTabs.style.display = showHeader ? "flex" : "none";
+
+  if (selectedPage === "matches") await renderMatchesTab();
+  else if (selectedPage === "live")   await renderLiveTab();
+  else if (selectedPage === "picks")  await renderPicksTab();
+  else if (selectedPage === "stats")  renderStatsTab();
+  else if (selectedPage === "alerts") renderAlertsTab();
+}
+
+// ── Show match detail sheet ────────────────────────────────────────────────
+let allMatchesFlat = [];
+
+async function showDetail(id) {
+  // Find match in cache
+  let m = null;
+  for (const arr of Object.values(cachedMatches)) {
+    m = arr.find(x => String(x.id) === String(id));
+    if (m) break;
+  }
+  if (!m) return;
+
+  const ai = m.ai;
+  document.getElementById("detailTitle").textContent = `${m.home} — ${m.away}`;
+  document.getElementById("detailSub").textContent = `${leagueEmoji(m.leagueCode)} ${m.league} · ${m.status === "live" ? "🔴 LIVE" : m.status === "finished" ? "Завершён · " + m.score : m.time}`;
+
+  document.getElementById("detailBody").innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">AI Pick</div><div class="stat-val g">${ai.pick}</div></div>
+      <div class="stat-card"><div class="stat-label">Confidence</div><div class="stat-val g">${ai.conf}%</div></div>
+      <div class="stat-card"><div class="stat-label">Expected Value</div><div class="stat-val g">${ai.ev}</div></div>
+      <div class="stat-card"><div class="stat-label">Risk Level</div><div class="stat-val b">${ai.risk}</div></div>
+    </div>
+    <div class="analysis-block">
+      <div class="analysis-title">🤖 AI Анализ</div>
+      <div class="analysis-text">AI прогнозирует ${ai.pick} с уверенностью ${ai.conf}%. Expected Value ставки: ${ai.ev}. Рекомендуется ставка с управлением банком не более 3-5% от депозита. Риск: ${ai.risk}.</div>
+    </div>
+    <div class="analysis-block">
+      <div class="analysis-title">📊 Коэффициенты</div>
+      <div class="odds-row" style="margin-top:4px">
+        <div class="odd-btn${ai.pick.toLowerCase().includes("home")?" value":""}"><div class="odd-label">П1 — ${m.home}</div><div class="odd-num">${ai.odds.h}</div></div>
+        <div class="odd-btn"><div class="odd-label">Ничья</div><div class="odd-num">${ai.odds.d}</div></div>
+        <div class="odd-btn${ai.pick.toLowerCase().includes("away")?" value":""}"><div class="odd-label">П2 — ${m.away}</div><div class="odd-num">${ai.odds.a}</div></div>
+      </div>
+    </div>
+    <div class="analysis-block">
+      <div class="analysis-title">ℹ️ Информация</div>
+      <div class="analysis-text">Лига: ${m.league}<br>Дата: ${m.time}<br>Статус: ${m.status === "live" ? "🔴 Live" : m.status === "finished" ? "Завершён" : "Предстоит"}</div>
+    </div>`;
+
+  document.getElementById("overlay").classList.add("open");
+  if (tgApp) tgApp.HapticFeedback?.impactOccurred("light");
+}
+
+// ── Filter tabs ────────────────────────────────────────────────────────────
+document.querySelectorAll(".ftab").forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll(".ftab").forEach(x => x.classList.remove("active"));
+    t.classList.add("active");
+    selectedFilter = t.dataset.f;
+    renderPage();
+  };
+});
+
+// ── Bottom nav ─────────────────────────────────────────────────────────────
+document.querySelectorAll(".nav-item").forEach(n => {
+  n.onclick = () => {
+    document.querySelectorAll(".nav-item").forEach(x => x.classList.remove("active"));
+    n.classList.add("active");
+    selectedPage = n.dataset.p;
+    renderPage();
+  };
+});
+
+// ── Close detail ───────────────────────────────────────────────────────────
+document.getElementById("closeBtn").onclick = () => document.getElementById("overlay").classList.remove("open");
+document.getElementById("overlay").onclick = e => { if (e.target.id === "overlay") document.getElementById("overlay").classList.remove("open"); };
+
+// ── Handle ?page= from bot deeplink ───────────────────────────────────────
+const urlPage = new URLSearchParams(location.search).get("page");
+if (urlPage && ["live","picks","stats","alerts"].includes(urlPage)) {
+  selectedPage = urlPage;
+  document.querySelectorAll(".nav-item").forEach(n => {
+    n.classList.toggle("active", n.dataset.p === urlPage);
+  });
+}
+
+// ── Initial render ─────────────────────────────────────────────────────────
+renderPage();
+</script>
+</body>
+</html>
