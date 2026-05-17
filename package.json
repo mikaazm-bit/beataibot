@@ -1,15 +1,8 @@
 {
   "name": "beatai-football-bot",
   "version": "1.0.0",
-  "description": "AI Football Betting Intelligence Telegram Bot",
   "main": "bot.js",
-  "scripts": {
-    "start": "node bot.js"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "express": "^4.18.2"
-  }
+  "scripts": { "start": "node bot.js" },
+  "engines": { "node": ">=18.0.0" },
+  "dependencies": {}
 }
